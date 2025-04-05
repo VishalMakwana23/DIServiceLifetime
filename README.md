@@ -98,35 +98,71 @@ public class SingletonService : ISingletonService
 ## **Testing the Service Lifetimes**
 ### **Controller Implementation**
 ```csharp
-[Route("api/[controller]")]
-[ApiController]
-public class LifetimeDemoController : ControllerBase
+using DIServiceLifetime.Services;
+using Microsoft.AspNetCore.Mvc;
+using static DIServiceLifetime.Services.ILoggerService;
+
+namespace DIServiceLifetime.Controllers
 {
-    private readonly ITransientService _transientService;
-    private readonly IScopedService _scopedService;
-    private readonly ISingletonService _singletonService;
-
-    public LifetimeDemoController(ITransientService transientService, IScopedService scopedService, ISingletonService singletonService)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class DemoController : ControllerBase
     {
-        _transientService = transientService;
-        _scopedService = scopedService;
-        _singletonService = singletonService;
-    }
+        private readonly ITransientService _transientService;
+        private readonly IScopedService _scopedService;
+        private readonly ISingletonService _singletonService;
+        private readonly IServiceProvider _serviceProvider;
 
-    [HttpGet("check-lifetimes")]
-    public IActionResult GetLifetimeInstances()
-    {
-        return Ok(new
+        // Constructor to inject the services
+        public DemoController(
+            ITransientService transientService,
+            IScopedService scopedService,
+            ISingletonService singletonService,
+            IServiceProvider serviceProvider
+            )
         {
-            Transient_1 = _transientService.GetOperationId(),
-            Transient_2 = _transientService.GetOperationId(),
-            Scoped_1 = _scopedService.GetOperationId(),
-            Scoped_2 = _scopedService.GetOperationId(),
-            Singleton_1 = _singletonService.GetOperationId(),
-            Singleton_2 = _singletonService.GetOperationId()
-        });
+            _transientService = transientService;
+            _scopedService = scopedService;
+            _singletonService = singletonService;
+            _serviceProvider = serviceProvider;
+        }
+
+        // Endpoint to get the operation IDs of the services
+        [HttpGet]
+        public IActionResult GetServiceIds()
+        {
+            return Ok(new
+            {
+                Transient = _transientService.GetOperationId(), // Transient service ID
+                Scoped = _scopedService.GetOperationId(), // Scoped service ID
+                Singleton = _singletonService.GetOperationId() // Singleton service ID
+            });
+        }
+
+        // Endpoint to get multiple instances of the services
+        [HttpGet("multiple")]
+        public IActionResult GetMultiple()
+        {
+            // Resolving services again to demonstrate their lifetimes
+            var transientService2 = _serviceProvider.GetRequiredService<ITransientService>();
+            var scopedService2 = _serviceProvider.GetRequiredService<IScopedService>();
+            var singletonService2 = _serviceProvider.GetRequiredService<ISingletonService>();
+
+            return Ok(new
+            {
+                Transient_1 = _transientService.GetOperationId(), // First transient service ID
+                Transient_2 = transientService2.GetOperationId(),  // Second transient service ID (should be different)
+
+                Scoped_1 = _scopedService.GetOperationId(), // First scoped service ID
+                Scoped_2 = scopedService2.GetOperationId(),  // Second scoped service ID (should be same)
+
+                Singleton_1 = _singletonService.GetOperationId(), // First singleton service ID
+                Singleton_2 = singletonService2.GetOperationId() // Second singleton service ID (should be same)
+            });
+        }
     }
 }
+
 ```
 
 ### **Expected Output (for one request)**
