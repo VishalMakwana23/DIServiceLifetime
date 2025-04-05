@@ -12,7 +12,7 @@ This repository demonstrates the different **service lifetimes** in .NET Core's 
 - **Singleton**: A single instance is created and shared across the entire application lifetime.
 
 ## **Technologies Used**
-- .NET Core 6/7/8
+- .NET Core 6/7/8/9
 - ASP.NET Web API
 - Swagger UI
 
